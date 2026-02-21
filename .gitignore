@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# Checkpoints and large data
+checkpoints/
+coco2017/
+coco/
+data/
+# IDE and OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Node (caption-app)
+caption-app/node_modules/
+caption-app/build/
+caption-app/.cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Logs and temp
+*.log
+.cache/
+tmp/
+temp/
+
+# Kaggle
+.kaggle/
+
+# Optional: uncomment if you want to ignore any local Karpathy copy
+# dataset_coco.json

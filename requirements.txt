@@ -1,0 +1,12 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.23.2
+pydantic>=2.10.0
+torch
+torchvision
+transformers==4.38.0
+Pillow
+numpy<2 # Downgrade to fix PyTorch / Transformers compatibility
+regex
+tokenizers==0.15.1
+typing-extensions>=4.10.0
+
