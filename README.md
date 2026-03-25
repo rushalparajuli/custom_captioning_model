@@ -156,6 +156,28 @@ uvicorn app:app --reload --host 0.0.0.0 --port 8000
 
 The API expects a base64-encoded image and returns a generated caption. The app loads the checkpoint from `checkpoints/best_model.pt` by default (edit `CHECKPOINT_PATH` in `app.py` if needed).
 
+Request fields:
+
+- `image_base64` (required): data URL style base64 image string, e.g. `data:image/jpeg;base64,...`
+- `caption_mode` (optional): controls decoding strategy
+  - `consistent`: beam search (`beam_width=5`, `max_length=16`)
+  - `safe_diverse`: stochastic decoding (`max_length=16`, `temperature=0.55`, `top_k=20`)
+  - `balanced_diverse`: stochastic decoding (`max_length=18`, `temperature=0.8`, `top_k=40`)
+  - `creative_diverse`: stochastic decoding (`max_length=22`, `temperature=1.05`, `top_k=80`)
+
+If `caption_mode` is omitted, the default is `consistent`.
+
+Example request:
+
+```bash
+curl -X POST http://localhost:8000/caption \
+  -H "Content-Type: application/json" \
+  -d '{
+    "image_base64": "data:image/jpeg;base64,...",
+    "caption_mode": "balanced_diverse"
+  }'
+```
+
 ### React caption app (optional)
 
 If you have the `caption-app` frontend:
@@ -164,7 +186,14 @@ If you have the `caption-app` frontend:
 cd caption-app && npm install && npm start
 ```
 
-Point the app at the FastAPI backend URL (e.g. `http://localhost:8000`).
+Point the app at the backend URL (Go proxy at `http://localhost:8080`, which forwards to FastAPI by default).
+
+The React app is upload-only and includes a caption type selector:
+
+- **Consistent caption** -> beam search
+- **Safe diverse caption** -> low-diversity stochastic decoding
+- **Balanced diverse captions** -> medium-diversity stochastic decoding
+- **Creative diverse caption** -> high-diversity stochastic decoding
 
 ## Project structure
 

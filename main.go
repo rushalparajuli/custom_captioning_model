@@ -21,6 +21,7 @@ const (
 
 type ImageRequest struct {
 	ImageBase64 string `json:"image_base64" binding:"required"`
+	CaptionMode string `json:"caption_mode"`
 }
 
 type CaptionResponse struct {
@@ -83,6 +84,9 @@ func main() {
 				Error: "image_base64 is required",
 			})
 			return
+		}
+		if req.CaptionMode == "" {
+			req.CaptionMode = "consistent"
 		}
 
 		log.Printf("Processing image request (size: %d bytes)", len(req.ImageBase64))

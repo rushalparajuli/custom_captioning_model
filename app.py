@@ -61,6 +61,7 @@ except Exception as e:
 
 class ImageData(BaseModel):
     image_base64: str
+    caption_mode: str = "consistent"
 
     @validator('image_base64')
     def validate_base64(cls, v):
@@ -75,6 +76,18 @@ class ImageData(BaseModel):
         if len(v) > 10_000_000:  # ~10MB limit
             raise ValueError("Image too large (max 10MB)")
         
+        return v
+
+    @validator('caption_mode')
+    def validate_caption_mode(cls, v):
+        allowed_modes = {
+            "consistent",
+            "safe_diverse",
+            "balanced_diverse",
+            "creative_diverse",
+        }
+        if v not in allowed_modes:
+            raise ValueError(f"caption_mode must be one of: {', '.join(sorted(allowed_modes))}")
         return v
 
 @app.get("/health")
@@ -116,21 +129,41 @@ async def generate_caption(data: ImageData):
             bos_id = getattr(tokenizer, "bos_token_id", 1)
             eos_id = getattr(tokenizer, "eos_token_id", 2)
 
-            # output_ids = model.generate(
-            #      pixel_values,
-            #      start_token_id=bos_id,
-            #      end_token_id=eos_id, 
-            #      max_length=50,
-            #      temperature=0.7,
-            #      top_k=50,
-            # )
-            output_ids = model.generate_beam(
-                pixel_values,
-                start_token_id=bos_id,
-                end_token_id=eos_id,
-                max_length=25,
-                beam_width=5,
-            )
+            if data.caption_mode == "consistent":
+                output_ids = model.generate_beam(
+                    pixel_values,
+                    start_token_id=bos_id,
+                    end_token_id=eos_id,
+                    max_length=16,
+                    beam_width=5,
+                )
+            elif data.caption_mode == "safe_diverse":
+                output_ids = model.generate(
+                    pixel_values,
+                    start_token_id=bos_id,
+                    end_token_id=eos_id,
+                    max_length=16,
+                    temperature=0.55,
+                    top_k=20,
+                )
+            elif data.caption_mode == "balanced_diverse":
+                output_ids = model.generate(
+                    pixel_values,
+                    start_token_id=bos_id,
+                    end_token_id=eos_id,
+                    max_length=18,
+                    temperature=0.8,
+                    top_k=40,
+                )
+            else:  # creative_diverse
+                output_ids = model.generate(
+                    pixel_values,
+                    start_token_id=bos_id,
+                    end_token_id=eos_id,
+                    max_length=22,
+                    temperature=1.05,
+                    top_k=80,
+                )
             # Trim at first EOS so we never show tokens after the caption (only if we have content before EOS)
             seq = output_ids[0]
             eos_pos = (seq == eos_id).nonzero(as_tuple=True)[0]
