@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import axios from 'axios';
+import './App.css';
 
 function App() {
   const fileInputRef = useRef(null);
@@ -20,16 +21,13 @@ function App() {
   ];
 
   const processImage = async (imageBase64) => {
-    if (isProcessingRef.current) {
-      return;
-    }
+    if (isProcessingRef.current) return;
 
     setLastProcessedImage(imageBase64);
     setIsProcessing(true);
     isProcessingRef.current = true;
     setError('');
 
-    // Cancel previous request if still running
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -42,18 +40,18 @@ function App() {
           image_base64: imageBase64,
           caption_mode: captionMode,
         },
-        { 
+        {
           signal: abortControllerRef.current.signal,
-          timeout: 10000
+          timeout: 10000,
         }
       );
 
       const newCaption = response.data.caption;
-      
+
       if (newCaption) {
         setCaption(newCaption);
         window.speechSynthesis.cancel();
-        
+
         setTimeout(() => {
           const utterance = new SpeechSynthesisUtterance(newCaption);
           utterance.rate = 1.0;
@@ -63,9 +61,7 @@ function App() {
         }, 100);
       }
     } catch (err) {
-      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
-        return;
-      }
+      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') return;
       setError(err.response?.data?.error || err.message || 'Processing failed');
     } finally {
       setIsProcessing(false);
@@ -77,13 +73,11 @@ function App() {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       setError('Please select an image file');
       return;
     }
 
-    // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       setError('File size must be less than 10MB');
       return;
@@ -101,178 +95,106 @@ function App() {
     reader.readAsDataURL(file);
   };
 
-  return (
-    <div style={{ 
-      textAlign: 'center', 
-      padding: '20px',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
-    }}>
-      <h1>Image Captioning</h1>
-      
-      <div style={{ marginBottom: '20px' }}>
-        <label htmlFor="captionMode" style={{ marginRight: '8px', fontWeight: 600 }}>
-          Caption Type:
-        </label>
-        <select
-          id="captionMode"
-          value={captionMode}
-          onChange={(e) => setCaptionMode(e.target.value)}
-          style={{
-            padding: '10px 12px',
-            fontSize: '14px',
-            borderRadius: '8px',
-            border: '1px solid #d1d5db',
-            minWidth: '360px'
-          }}
-        >
-          {captionModeOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
+  const handleClear = () => {
+    setUploadedImage(null);
+    setCaption('');
+    setError('');
+    setLastProcessedImage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
-      <div style={{ 
-        display: 'inline-block', 
-        position: 'relative',
-        borderRadius: '8px',
-        overflow: 'hidden',
-        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-        marginBottom: '20px'
-      }}>
-        <div style={{
-          width: '640px',
-          height: '480px',
-          backgroundColor: '#f3f4f6',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          border: '2px dashed #d1d5db'
-        }}>
+  const captionText = error
+    ? `⚠️ ${error}`
+    : caption
+      ? `📷 ${caption}`
+      : '📁 Select a photo to generate caption';
+
+  return (
+    <div className="app">
+      <h1 className="app__title">Image Captioning</h1>
+
+      <div className="app__card">
+
+        {/* ── Caption mode selector ── */}
+        <div className="caption-mode">
+          <label className="caption-mode__label" htmlFor="captionMode">
+            Caption Type
+          </label>
+          <select
+            id="captionMode"
+            className="caption-mode__select"
+            value={captionMode}
+            onChange={(e) => setCaptionMode(e.target.value)}
+          >
+            {captionModeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* ── Image preview ── */}
+        <div className="image-box">
           {uploadedImage ? (
-            <img 
-              src={uploadedImage} 
-              alt="Uploaded" 
-              style={{
-                maxWidth: '100%',
-                maxHeight: '100%',
-                objectFit: 'contain'
-              }}
-            />
+            <img className="image-box__img" src={uploadedImage} alt="Uploaded" />
           ) : (
-            <div style={{ textAlign: 'center', color: '#6b7280' }}>
-              <p style={{ fontSize: '48px', margin: '0 0 10px 0' }}>📷</p>
-              <p style={{ fontSize: '16px', margin: '0' }}>No image selected</p>
+            <div className="image-box__placeholder">
+              <span className="image-box__placeholder-icon">📷</span>
+              <span className="image-box__placeholder-text">No image selected</span>
             </div>
           )}
+          {isProcessing && (
+            <div className="image-box__processing-badge">Processing…</div>
+          )}
         </div>
-        {isProcessing && (
-          <div style={{
-            position: 'absolute',
-            top: '10px',
-            right: '10px',
-            background: 'rgba(0,0,0,0.7)',
-            color: 'white',
-            padding: '5px 10px',
-            borderRadius: '4px',
-            fontSize: '12px'
-          }}>
-            Processing...
+
+        {/* ── Action buttons ── */}
+        <div className="button-row">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileUpload}
+            style={{ display: 'none' }}
+          />
+          <button
+            className="btn btn--primary"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {uploadedImage ? '🔄 Change Photo' : '📁 Choose Photo'}
+          </button>
+
+          {uploadedImage && (
+            <button className="btn btn--danger" onClick={handleClear}>
+              ✕ Clear
+            </button>
+          )}
+        </div>
+
+        {/* ── Caption output ── */}
+        <div className="caption-output">
+          <p className={`caption-output__text${error ? ' caption-output__text--error' : ''}`}>
+            {captionText}
+          </p>
+        </div>
+
+        {/* ── Retry ── */}
+        {lastProcessedImage && (
+          <div className="retry-row">
+            <button
+              className="btn btn--success"
+              onClick={() => processImage(lastProcessedImage)}
+              disabled={isProcessing}
+            >
+              🔁 Try again
+            </button>
           </div>
         )}
-      </div>
 
-      <div style={{ marginBottom: '20px' }}>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleFileUpload}
-          style={{ display: 'none' }}
-        />
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          style={{
-            padding: '12px 24px',
-            fontSize: '16px',
-            backgroundColor: '#3b82f6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontWeight: '600',
-            transition: 'background-color 0.2s'
-          }}
-          onMouseOver={(e) => e.target.style.backgroundColor = '#2563eb'}
-          onMouseOut={(e) => e.target.style.backgroundColor = '#3b82f6'}
-        >
-          {uploadedImage ? '🔄 Change Photo' : '📁 Choose Photo'}
-        </button>
-        {uploadedImage && (
-          <button
-            onClick={() => {
-              setUploadedImage(null);
-              setCaption('');
-              setError('');
-              setLastProcessedImage(null);
-              if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-              }
-            }}
-            style={{
-              padding: '12px 24px',
-              fontSize: '16px',
-              backgroundColor: '#ef4444',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: '600',
-              marginLeft: '10px',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#dc2626'}
-            onMouseOut={(e) => e.target.style.backgroundColor = '#ef4444'}
-          >
-            ✕ Clear
-          </button>
-        )}
       </div>
-
-      <div style={{ marginTop: '20px' }}>
-        <h2 style={{ 
-          color: error ? '#dc2626' : '#1f2937',
-          minHeight: '40px'
-        }}>
-          {error ? `⚠️ ${error}` : caption ? `📷 ${caption}` : '📁 Select a photo to generate caption'}
-        </h2>
-      </div>
-
-      {lastProcessedImage && (
-        <div style={{ marginTop: '16px' }}>
-          <button
-            onClick={() => processImage(lastProcessedImage)}
-            disabled={isProcessing}
-            style={{
-              padding: '10px 20px',
-              fontSize: '16px',
-              backgroundColor: isProcessing ? '#9ca3af' : '#10b981',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: isProcessing ? 'not-allowed' : 'pointer',
-              fontWeight: '600',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseOver={(e) => !isProcessing && (e.target.style.backgroundColor = '#059669')}
-            onMouseOut={(e) => !isProcessing && (e.target.style.backgroundColor = '#10b981')}
-          >
-            Try again
-          </button>
-        </div>
-      )}
     </div>
   );
 }
